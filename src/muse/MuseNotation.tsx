@@ -1,179 +1,62 @@
-import React from "react";
-import MuseConfig from "./MuseConfig";
-import Dimens from "./Dimens";
-import MusePage, { Page } from "./MusePage";
-import { border } from "./Border";
+import React from 'react';
+import { useMuseRepo } from './repo/muse-repo';
+import { useObserver } from 'mobx-react';
+import { MusePages } from './MusePage';
 
-export class Notation {
-  config: MuseConfig;
-  pages: Page[] = [];
-  title: string = "";
-  subtitle: string = "";
-  author: string[] = [];
-  speed: string = "";
-  rhythmic: string = "";
-  C: string = "";
-  dimens: Dimens = new Dimens();
-  constructor(json: string, config: MuseConfig) {
-    this.config = config;
-    let o: any = JSON.parse(json);
-    if (o.pages !== undefined) {
-      o.pages.forEach((it: any) => {
-        this.pages.push(new Page(it, this.config));
-      });
-    }
-    if (o.dimens !== undefined) {
-      this.dimens = o.dimens;
-    }
-    if (o.title !== undefined) {
-      this.title = o.title;
-    }
-    if (o.subtitle !== undefined) {
-      this.subtitle = o.subtitle;
-    }
-    if (o.author !== undefined) {
-      this.author = o.author.toString().split("|");
-    }
-    if (o.speed !== undefined) {
-      this.speed = o.speed;
-    }
-    if (o.rhythmic) {
-      this.rhythmic = o.rhythmic;
-    }
-    if (o.C) {
-      this.C = "1=" + o.C;
-    }
-  }
-}
+const NotationInfo: React.FC = () => {
+  const repo = useMuseRepo();
+  const [title, subtitle, author, C, rhythmic] = useObserver(() => {
+    const muse = repo.muse;
+    return [muse.title, muse.subtitle, muse.author, muse.C, muse.rhythmic];
+  });
 
-function notationInfo(notation: Notation, clazz: string) {
-  let config = notation.config;
-  let y = 0;
-  y += config.pageMarginVertical;
-  let title = (
-    <text
-      className={clazz + "__info-title"}
-      fontFamily={config.textFontFamily}
-      width={notation.dimens.width}
-      textAnchor={"middle"}
-      fontSize={config.infoTitleFontSize}
-      transform={
-        "translate(" +
-        (notation.dimens.marginLeft + notation.dimens.width / 2) +
-        "," +
-        y +
-        ")"
-      }
-    >
-      {notation.title}
-    </text>
-  );
-  y += config.infoTitleFontSize + config.infoGap;
-  let subtitle = (
-    <text
-      className={clazz + "__info-subtitle"}
-      fontFamily={config.textFontFamily}
-      width={notation.dimens.width}
-      textAnchor={"middle"}
-      fontSize={config.infoSubtitleFontSize}
-      transform={
-        "translate(" +
-        (notation.dimens.marginLeft + notation.dimens.width / 2) +
-        "," +
-        y +
-        ")"
-      }
-    >
-      {notation.subtitle}
-    </text>
-  );
-  let y1 = y;
-  let x = notation.author.length;
-  let author = (
-    <g className={clazz + "__info-author"}>
-      {notation.author.map((it, idx) => {
-        y1 += config.infoFontSize + config.infoGap;
-        if (idx < x - 2) {
-          y += config.infoFontSize + config.infoGap;
-        }
-        return (
-          <text
-            key={idx}
-            fontFamily={config.textFontFamily}
-            width={notation.dimens.width}
-            fontSize={config.infoFontSize}
-            textAnchor={"end"}
-            x={0}
-            transform={
-              "translate(" +
-              (notation.dimens.width - config.pageMarginHorizontal) +
-              "," +
-              y1 +
-              ")"
-            }
-          >
-            {it}
-          </text>
-        );
-      })}
-    </g>
-  );
-  let y2 = y + (config.infoGap + config.infoSubtitleFontSize);
-  let y3 = y2 + (config.infoGap + config.infoFontSize);
-  let rythimic = (
-    <g className={clazz + "__info-rythmic"} width={notation.dimens.width}>
-      <text
-        fontFamily={config.textFontFamily}
-        width={notation.dimens.width}
-        fontSize={config.infoFontSize}
-        transform={"translate(" + config.pageMarginHorizontal + "," + y2 + ")"}
-      >
-        {notation.speed}
-      </text>
-      <text
-        fontFamily={config.textFontFamily}
-        width={notation.dimens.width}
-        fontSize={config.infoFontSize}
-        transform={"translate(" + config.pageMarginHorizontal + "," + y3 + ")"}
-      >
-        {notation.C + " " + notation.rhythmic}
-      </text>
-    </g>
-  );
+  const authors = author.split('|').map(it => (
+    <div
+      key={it}
+      style={{ textAlign: 'right', fontSize: '20px', fontFamily: 'serif' }}>
+      {it}
+    </div>
+  ));
+
+  const rhythmicText = `1=${C} ${rhythmic}`;
+
   return (
-    <g className={clazz + "__info"} width={notation.dimens.width}>
-      {title}
-      {subtitle}
-      {author}
-      {rythimic}
-    </g>
+    <div style={{ position: 'relative' }}>
+      <div
+        style={{ margin: '70px 0 0', fontSize: '34px', fontFamily: 'serif' }}>
+        {title}
+      </div>
+      <div
+        style={{ margin: '10px 0 0', fontSize: '22px', fontFamily: 'serif' }}>
+        {subtitle}
+      </div>
+      <div>{authors}</div>
+      <div
+        style={{
+          position: 'absolute',
+          fontSize: '20px',
+          fontFamily: 'serif',
+          left: '0',
+          bottom: '0',
+        }}>
+        {rhythmicText}
+      </div>
+    </div>
   );
-}
+};
 
-function MuseNotation(props: { notation: Notation }) {
-  let margin = 10;
-  let d = props.notation.dimens;
-  let clazz = "muse-notation";
+export const Notation: React.FC = () => {
   return (
-    <svg
-      className="muse"
-      width={props.notation.dimens.width + margin * 2}
-      height={props.notation.dimens.height + margin * 2}
-    >
-      <g
-        className={clazz}
-        transform={"translate(" + margin + "," + margin + ")"}
-        width={props.notation.dimens.width}
-        height={props.notation.dimens.height}
-      >
-        {border(d, clazz)}
-        {notationInfo(props.notation, clazz)}
-        {props.notation.pages.map((it, idx) => (
-          <MusePage page={it} key={idx} />
-        ))}
-      </g>
-    </svg>
+    <div
+      style={{
+        border: 'solid thin grey',
+        padding: '0 100px',
+        width: '1000px',
+        margin: '10px auto',
+        boxSizing: 'border-box',
+      }}>
+      <NotationInfo />
+      <MusePages />
+    </div>
   );
-}
-
-export default MuseNotation;
+};
